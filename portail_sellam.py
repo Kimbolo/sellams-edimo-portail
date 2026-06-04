@@ -68,7 +68,6 @@ try:
     conn.close()
 except:
     MODE_DEMO = True
-    st.warning("Mode démonstration activé - Base de données inaccessible depuis le cloud")
 
 # ============================================================
 # FONCTIONS CACHEES
