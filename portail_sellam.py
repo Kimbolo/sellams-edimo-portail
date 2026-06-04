@@ -84,9 +84,9 @@ def get_kpi():
         stock = pd.read_sql("SELECT SUM(QUANTITE*PRIX_VENTE) as v FROM stock WHERE STATUT=1 AND QUANTITE>0", conn)['v'][0] or 0
         factures = pd.read_sql("SELECT COUNT(*) as n FROM facturec WHERE STATUT=1", conn)['n'][0]
         conn.close()
+        return float(ca), int(produits), int(fournisseurs), float(stock), int(factures)
     except:
         return _demo_kpi()
-    return float(ca), int(produits), int(fournisseurs), float(stock), int(factures)
 
 @st.cache_data(ttl=300)
 def get_ventes_mensuelles():
@@ -95,19 +95,19 @@ def get_ventes_mensuelles():
         conn = pymysql.connect(**DB_CONFIG)
         df = pd.read_sql("""
             SELECT YEAR(f.DATE_FACTURE) as annee, MONTH(f.DATE_FACTURE) as mois,
-                pv.NOM_POINT_VENTE as boutique,
-                SUM(lf.QUANTITE*lf.PRIX_UNITAIRE) as ca,
-                COUNT(DISTINCT f.ID_FACTURE) as nb_factures,
-                SUM(lf.QUANTITE) as articles
+                   pv.NOM_POINT_VENTE as boutique,
+                   SUM(lf.QUANTITE*lf.PRIX_UNITAIRE) as ca,
+                   COUNT(DISTINCT f.ID_FACTURE) as nb_factures,
+                   SUM(lf.QUANTITE) as articles
             FROM facturec f JOIN ligne_facturec lf ON f.ID_FACTURE=lf.ID_FACTURE
             JOIN point_vente pv ON f.ID_POINT_VENTE=pv.ID_POINT_VENTE
             WHERE f.STATUT=1 GROUP BY YEAR(f.DATE_FACTURE), MONTH(f.DATE_FACTURE), pv.NOM_POINT_VENTE
             ORDER BY annee, mois
         """, conn)
         conn.close()
+        return df
     except:
         return _demo_ventes()
-    return df
 
 @st.cache_data(ttl=300)
 def get_predictions():
@@ -118,7 +118,7 @@ def get_predictions():
             SELECT DATE(f.DATE_FACTURE) as date, SUM(lf.QUANTITE*lf.PRIX_UNITAIRE) as ca
             FROM facturec f JOIN ligne_facturec lf ON f.ID_FACTURE=lf.ID_FACTURE
             WHERE f.STATUT=1 AND f.DATE_FACTURE>='2023-01-01' AND f.DATE_FACTURE<'2025-01-01'
-        GROUP BY DATE(f.DATE_FACTURE) ORDER BY date
+            GROUP BY DATE(f.DATE_FACTURE) ORDER BY date
         """, conn)
         conn.close()
         df['date'] = pd.to_datetime(df['date'])
@@ -139,9 +139,9 @@ def get_predictions():
             future_dates.append(d.strftime('%Y-%m'))
             coef = saison.get(d.month, 1.0)
             predictions.append(max(0, float(tendance[i] * coef)))
+        return future_dates, predictions, float(sum(predictions)), coeffs[0]
     except:
         return _demo_predictions()
-    return future_dates, predictions, float(sum(predictions)), coeffs[0]
 
 @st.cache_data(ttl=300)
 def get_productions_detail():
@@ -152,16 +152,16 @@ def get_productions_detail():
             SELECT p.REF_PRODUCTION, p.date_production, p.quantite,
                    pr.DESIGNATION as produit, m.NOM_MAGASIN as magasin, p.valide
             FROM production p
-        JOIN produit pr ON p.id_produit_resultant = pr.ID_PRODUIT
-        JOIN magasin m ON p.id_magasin = m.ID_MAGASIN
-        WHERE p.statut = 1
-        ORDER BY p.date_production DESC
-        LIMIT 100
-    """, conn)
-    conn.close()
+            JOIN produit pr ON p.id_produit_resultant = pr.ID_PRODUIT
+            JOIN magasin m ON p.id_magasin = m.ID_MAGASIN
+            WHERE p.statut = 1
+            ORDER BY p.date_production DESC
+            LIMIT 100
+        """, conn)
+        conn.close()
+        return df
     except:
         return _demo_productions()
-    return df
 
 def telecharger_pdf(fig, nom="graphique"):
     """Convertit un graphique Plotly en PDF pour téléchargement"""
